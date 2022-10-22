@@ -9,8 +9,9 @@ import { nanoid } from 'nanoid';
 import create from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { once } from 'lodash-es';
+import { message } from 'antd';
 
-const peerId = nanoid(); // 实例唯一的id
+export const peerId = nanoid(); // 实例唯一的id
 const serviceUrl = process.env.TAILCHAT_MEETING_URL;
 if (!serviceUrl) {
   console.error('env "TAILCHAT_MEETING_URL" is required');
@@ -22,17 +23,19 @@ interface RTCProduceState {
 }
 
 interface RTCClientState {
-  client: TailchatMeetingClient;
+  roomId: string;
   produce: {
     webcam: RTCProduceState;
     mic: RTCProduceState;
     volume: Volume | null;
   };
   peers: Peer[];
+  peerUpdateRef: Record<string, number>; // 用于强制更新列表 <peerId, updateNum>
   join: (roomId: string, options: JoinOptions) => Promise<void>;
-  getPeerMediaTracks: (peerId: string) => {
+  getPeerMediaInfo: (peerId: string) => {
     webcamTrack: MediaStreamTrack | undefined;
     micTrack: MediaStreamTrack | undefined;
+    volumeWatcher: VolumeWatcher | undefined;
   };
 }
 
@@ -49,16 +52,20 @@ export const useRTCClientStore = create<
     const listenPeersUpdate = once(() => {
       client.onPeersUpdate((peers) => {
         set({
-          peers,
+          peers: [...peers],
         });
       });
 
-      // client.onPeerConsumerUpdate((peerId, consumer) => {
-      //   // 强制更新一下
-      //   set({
-      //     peers: [...get().peers],
-      //   });
-      // });
+      client.onPeerConsumerUpdate((peerId, consumer) => {
+        // 强制更新一下
+        set((state) => {
+          if (!state.peerUpdateRef[peerId]) {
+            state.peerUpdateRef[peerId] = 0;
+          }
+
+          state.peerUpdateRef[peerId] += 1;
+        });
+      });
     });
 
     client.onWebcamProduce((webcamProducer) => {
@@ -113,7 +120,7 @@ export const useRTCClientStore = create<
     });
 
     return {
-      client,
+      roomId: '',
       produce: {
         webcam: {
           enabled: false,
@@ -126,24 +133,39 @@ export const useRTCClientStore = create<
         volume: null,
       },
       peers: [],
+      peerUpdateRef: {},
       async join(roomId, options) {
-        await client.join(roomId, options);
+        try {
+          const joinP = ((window as any).joinP = client.join(roomId, options));
+          await Promise.resolve(joinP);
 
-        set({
-          peers: client.room?.peers ?? [],
-        });
+          console.log('join room success', {
+            roomId,
+            options,
+          });
+          message.success(`加入房间 ${roomId} 成功`);
 
-        listenPeersUpdate();
+          set({
+            roomId,
+            peers: client.room?.peers ?? [],
+          });
+
+          listenPeersUpdate();
+        } catch (err) {
+          console.error('join room failed', err);
+          throw err;
+        }
       },
-      getPeerMediaTracks(peerId: string) {
+      getPeerMediaInfo(peerId: string) {
         const { webcamConsumer, micConsumer } =
           client.getConsumersByPeerId(peerId);
 
         return {
           webcamTrack: webcamConsumer?.track,
           micTrack: micConsumer?.track,
+          volumeWatcher: micConsumer?.appData.volumeWatcher,
         };
       },
-    };
+    } as RTCClientState;
   })
 );

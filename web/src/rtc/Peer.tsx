@@ -6,6 +6,8 @@ interface PeerProps {
 
   /**
    * 声音比例
+   *
+   * 取值为 0 到 1 的双精度值。0 为静音，1 为音量最大时的值。
    */
   volume: number;
 }
@@ -17,26 +19,35 @@ export const Peer: React.FC<PeerProps> = React.memo((props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [displayWebcam, setDisplayWebcam] = useState(false);
-  const { getPeerMediaTracks } = useRTCClientStore();
+  const { getPeerMediaInfo, peerUpdateRef } = useRTCClientStore();
+  const [currentVolumeLevel, setCurrentVolumeLevel] = useState(0);
 
   useEffect(() => {
-    if (!videoRef.current || !audioRef.current) {
-      return;
-    }
+    const { webcamTrack, micTrack, volumeWatcher } = getPeerMediaInfo(
+      props.peerId
+    );
 
-    const { webcamTrack, micTrack } = getPeerMediaTracks(props.peerId);
-
-    if (webcamTrack) {
+    if (webcamTrack && videoRef.current) {
       setDisplayWebcam(true);
       videoRef.current.srcObject = new MediaStream([webcamTrack]);
-      videoRef.current.play();
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      }
     }
 
-    if (micTrack) {
+    if (micTrack && audioRef.current) {
       audioRef.current.srcObject = new MediaStream([micTrack]);
-      audioRef.current.play();
+      if (audioRef.current.paused) {
+        audioRef.current.play();
+      }
     }
-  }, []);
+
+    if (volumeWatcher) {
+      volumeWatcher.on('volumeChange', ({ scaledVolume }) => {
+        setCurrentVolumeLevel(scaledVolume);
+      });
+    }
+  }, [peerUpdateRef[props.peerId]]);
 
   useEffect(() => {
     if (!audioRef.current) {
@@ -51,6 +62,8 @@ export const Peer: React.FC<PeerProps> = React.memo((props) => {
       {displayWebcam && <video ref={videoRef} autoPlay={true} />}
 
       <audio ref={audioRef} autoPlay={true} style={{ display: 'none' }} />
+
+      <div>音量等级: {currentVolumeLevel}</div>
     </div>
   );
 });

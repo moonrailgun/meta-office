@@ -3,21 +3,19 @@ import { useLogin } from './hooks/useLogin';
 import { UserInfo } from './type';
 
 interface GlobalContextData {
-  userinfo?: UserInfo;
+  userInfo?: UserInfo;
   login: () => void;
-  loggingIn: boolean;
 }
 
 const GlobalContext = createContext({} as GlobalContextData);
 
 export const GlobalContextProvider: React.FC<{ children: React.ReactNode }> =
   memo(({ children }) => {
-    const { userInfo, login, loggingIn } = useLogin();
+    const { userInfo, login } = useLogin();
 
     const contextData = {
       userInfo,
       login,
-      loggingIn,
     };
 
     return (

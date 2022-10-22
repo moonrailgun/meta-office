@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { AuthConfigParams } from './type';
 
 export const endpoint = process.env.ENDPOINT ?? 'http://127.0.0.1:3000';
 
@@ -7,10 +6,16 @@ const request = axios.create({
   baseURL: endpoint,
 });
 
-export const getConfigParameters = () => {
-  return request.get<AuthConfigParams>('/getConfigParameters', {
+/**
+ * 获取用户登录信息
+ * @param code 登录预授权码
+ */
+export const getUserInfo = async (code: string) => {
+  const { data } = await request.get('/userInfo', {
     params: {
-      url: encodeURIComponent(location.href.split('#')[0]),
+      code,
     },
   });
+
+  return data;
 };

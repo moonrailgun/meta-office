@@ -54,6 +54,20 @@ router.get('/getConfigParameters', async (ctx, next) => {
   };
 });
 
+router.get('/auth', async (ctx) => {
+  const redirectUrl = encodeURIComponent(String(ctx.query.redirectUrl));
+  const { url: authUrl, state } = auth.getAuthUrl(redirectUrl);
+  console.log('authUrl', authUrl);
+
+  ctx.redirect(authUrl);
+});
+
+router.get('/userInfo', async (ctx) => {
+  const code = String(ctx.query.code);
+
+  ctx.body = await auth.getUserInfo(code);
+});
+
 app.use(router.routes()).use(router.allowedMethods());
 
 server.listen(3000, () => {

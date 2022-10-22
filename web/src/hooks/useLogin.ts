@@ -1,80 +1,42 @@
 import { useCallback, useState } from 'react';
 import { UserInfo } from '../type';
-import { feishuSDK } from '../sdk';
-import { getConfigParameters } from '../api';
+import { endpoint, getUserInfo } from '../api';
+import { message } from 'antd';
 
 export function useLogin() {
   const [userInfo, setUserInfo] = useState<UserInfo>();
-  const [loggingIn, setLoggingIn] = useState(false);
 
   const login = useCallback(async () => {
-    setLoggingIn(true);
+    const win = window.open(
+      `${endpoint}/auth?redirectUrl=${encodeURIComponent(
+        location.origin + '/oauth.html'
+      )}`,
+      'oauth-window',
+      'width=414,height=736'
+    );
 
-    if (!feishuSDK.valid()) {
-      alert('Please open in feishu!');
+    if (!win) {
+      message.error('登录窗口被拦截, 请取消拦截后重试');
       return;
     }
 
-    try {
-      const {
-        data: { appId, timestamp, nonceStr, signature },
-      } = await getConfigParameters();
+    const handleProcessOAuthCallback = async (event: MessageEvent<any>) => {
+      if (event.data?.['type'] === 'onOAuthFinished') {
+        const code = event.data['code'];
 
-      // 通过error接口处理API验证失败后的回调
-      window.h5sdk.error((err: any) => {
-        throw 'h5sdk error:' + JSON.stringify(err);
-      });
+        const userInfo = await getUserInfo(code);
 
-      window.h5sdk.config({
-        appId,
-        timestamp,
-        nonceStr,
-        signature,
-        jsApiList: [],
-        onSuccess: (res: any) => {
-          console.log(`Auth success: ${JSON.stringify(res)}`);
-        },
-        onFail: (err: any) => {
-          throw `Auth failed: ${JSON.stringify(err)}`;
-        },
-      });
+        // 登录成功
+        setUserInfo(userInfo);
 
-      // 完成鉴权后，便可在 window.h5sdk.ready 里调用 JSAPI
-      feishuSDK.h5sdk.ready(() => {
-        // 调用 getUserInfo API 获取已登录用户的基本信息，详细文档参见https://open.feishu.cn/document/uYjL24iN/ucjMx4yNyEjL3ITM
-        feishuSDK.tt.getUserInfo({
-          // getUserInfo API 调用成功回调
-          success(res: any) {
-            console.log('success', res);
-            setUserInfo(res);
-          },
-          fail(err: any) {
-            alert(`getUserInfo failed: ${JSON.stringify(err)}`);
-          },
-        });
+        message.success('登录成功');
 
-        // 调用 showToast API 弹出全局提示框，详细文档参见https://open.feishu.cn/document/uAjLw4CM/uYjL24iN/block/api/showtoast
-        feishuSDK.tt.showToast({
-          title: '鉴权成功',
-          icon: 'success',
-          duration: 3000,
-          success(res: any) {
-            console.log('showToast 调用成功', res.errMsg);
-          },
-          fail(res: any) {
-            console.log('showToast 调用失败', res.errMsg);
-          },
-          complete(res: any) {
-            console.log('showToast 调用结束', res.errMsg);
-          },
-        });
-      });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoggingIn(false);
-    }
+        window.removeEventListener('message', handleProcessOAuthCallback);
+      }
+    };
+
+    window.addEventListener('message', handleProcessOAuthCallback);
   }, []);
 
-  return { userInfo, loggingIn, login };
+  return { userInfo, login };
 }

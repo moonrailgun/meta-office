@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  登录成功，正在回到应用
+</body>
+
+<script>
+  var data = { type: 'onOAuthFinished', code: new URLSearchParams(location.search).get('code') }
+
+  if (!!window.opener) {
+    // 能够获取到打开的窗口, 说明是web端
+    window.opener.postMessage(data, location.origin)
+    window.close();
+  }
+</script>
+
+</html>

@@ -1,8 +1,13 @@
 import axios, { AxiosResponse } from 'axios';
+import { nanoid } from 'nanoid';
 
+const AUTHEN_URI =
+  '/open-apis/authen/v1/index?redirect_uri={REDIRECT_URI}&app_id={APPID}&state={STATE}';
 const TENANT_ACCESS_TOKEN_URI =
   '/open-apis/auth/v3/tenant_access_token/internal';
 const JSAPI_TICKET_URI = '/open-apis/jssdk/ticket/get';
+const USER_ACCESS_TOKEN_URI = '/open-apis/authen/v1/access_token';
+const USER_INFO_URI = '/open-apis/authen/v1/user_info';
 
 export class Auth {
   tenantAccessToken: string | null = null;
@@ -16,6 +21,53 @@ export class Auth {
 
   getUrl(url: string) {
     return this.host + url;
+  }
+
+  getAuthUrl(redirectUri: string) {
+    const state = nanoid();
+    return {
+      url: this.getUrl(AUTHEN_URI)
+        .replace('{REDIRECT_URI}', redirectUri)
+        .replace('{APPID}', this.appId)
+        .replace('{STATE}', state),
+      state,
+    };
+  }
+
+  /**
+   * 获取用户信息
+   */
+  async getUserInfo(oauthCode: string) {
+    const tenantAccessToken = await this.authorizeTenantAccessToken();
+    try {
+      const { data: accessTokenObj } = await axios.post(
+        this.getUrl(USER_ACCESS_TOKEN_URI),
+        {
+          grant_type: 'authorization_code',
+          code: oauthCode,
+        },
+        {
+          headers: {
+            Authorization: 'Bearer ' + tenantAccessToken,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const userAccessToken = accessTokenObj.data.access_token;
+
+      const { data } = await axios.get(this.getUrl(USER_INFO_URI), {
+        headers: {
+          Authorization: 'Bearer ' + userAccessToken,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return data.data;
+    } catch (err) {
+      console.error(err);
+      throw new Error(err);
+    }
   }
 
   async getTicket() {
