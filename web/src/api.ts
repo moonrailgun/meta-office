@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { AuthConfigParams } from './type';
 
-export const endpoint = 'http://127.0.0.1:3000';
+export const endpoint = process.env.ENDPOINT ?? 'http://127.0.0.1:3000';
 
 const request = axios.create({
   baseURL: endpoint,

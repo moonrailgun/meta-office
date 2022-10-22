@@ -10,17 +10,23 @@
   },
   "dependencies": {
     "axios": "^1.1.3",
+    "lodash-es": "^4.17.21",
+    "nanoid": "^4.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "tailchat-meeting-sdk": "1.2.5",
     "y-socket.io": "^1.0.0",
-    "yjs": "^13.5.41"
+    "yjs": "^13.5.41",
+    "zustand": "^4.1.2"
   },
   "devDependencies": {
+    "@types/lodash-es": "^4.17.6",
+    "@types/node": "^18.8.5",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
     "@vitejs/plugin-react": "^2.1.0",
     "less": "^4.1.3",
-    "typescript": "^4.6.4",
+    "typescript": "^4.8.4",
     "vite": "^3.1.0"
   },
   "license": "Apache-2.0"
