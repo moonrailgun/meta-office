@@ -49,7 +49,7 @@ router.get('/getConfigParameters', async (ctx, next) => {
   ctx.body = {
     appId,
     signature: sha1(verifyStr),
-    noncestr: NONCE_STR,
+    nonceStr: NONCE_STR,
     timestamp,
   };
 });
