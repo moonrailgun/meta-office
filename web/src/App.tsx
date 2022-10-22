@@ -1,60 +1,47 @@
-import { memo, ReactNode, useCallback } from 'react';
-import { Doc } from 'yjs';
-import { SocketIOProvider } from 'y-socket.io';
-import { endpoint } from './api';
+import { memo, ReactNode } from 'react';
 import { LoginButton } from './components/LoginButton';
-import { GlobalContextProvider } from './context';
+import { GlobalContextProvider, useGlobalContext } from './context';
 import styles from './App.module.less';
-import { RoomSwitch } from './components/RoomSwitch';
 import { useRTCClientStore } from './rtc/store';
 import { RoomId } from './components/RoomID';
 import { Header } from './components/Header';
 import { ProduceInfo } from './components/ProduceInfo';
 import { Playground } from './components/Playground';
 import { Peer } from './rtc/Peer';
+import { MessageInput } from './components/MessageInput';
 import 'antd/dist/antd.css';
 
-const roomId = 'any-room-id';
-const doc = new Doc();
-const provider = new SocketIOProvider(endpoint, roomId, doc, {});
-const data = doc.getMap<number>('data');
-
-provider.on('status', ({ status }: { status: string }) => {
-  console.log(status); // Logs "connected" or "disconnected"
-});
-
-const AppInner: React.FC<{ children: ReactNode }> = memo(({ children }) => {
-  return <GlobalContextProvider>{children}</GlobalContextProvider>;
-});
-
-const App: React.FC = () => {
+const AppInner: React.FC = memo(() => {
   const { peers } = useRTCClientStore();
+  const { userInfo } = useGlobalContext();
+
+  if (!userInfo) {
+    return <LoginButton />;
+  }
 
   return (
     <div className={styles.App}>
-      <AppInner>
-        <Header />
+      <Header />
 
-        <div className={styles.mainContent}>
-          <RoomId />
+      <div className={styles.mainContent}>
+        <RoomId />
 
-          <ProduceInfo />
+        {/* <ProduceInfo /> */}
+        {/* <div>{JSON.stringify(peers)}</div> */}
 
-          <LoginButton />
+        <Playground />
 
-          {/* 临时放一下，用于调试 */}
-          {peers.map((peer) => (
-            <div key={peer.id}>
-              用户: {peer.displayName}({peer.id})
-              <Peer peerId={peer.id} volume={1} />
-            </div>
-          ))}
-          {JSON.stringify(peers)}
-
-          <Playground />
-        </div>
-      </AppInner>
+        <MessageInput />
+      </div>
     </div>
+  );
+});
+
+const App: React.FC = () => {
+  return (
+    <GlobalContextProvider>
+      <AppInner />
+    </GlobalContextProvider>
   );
 };
 

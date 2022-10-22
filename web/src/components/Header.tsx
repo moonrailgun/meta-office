@@ -27,21 +27,10 @@ const LeftContainer = styled.div`
 `;
 
 export const Header: React.FC = memo(() => {
-  const { join } = useRTCClientStore();
-
   return (
     <HeaderContainer>
       <LeftContainer>
-        <RoomSwitch
-          onJoinRoom={(roomId: string) =>
-            join(`meta-office-${roomId}`, {
-              video: false,
-              audio: false,
-              displayName: Math.random().toString(),
-              picture: '',
-            })
-          }
-        />
+        <RoomSwitch />
 
         <Divider type="vertical" style={{ height: 32 }} />
 

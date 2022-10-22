@@ -1,5 +1,6 @@
+import { debounce } from 'lodash-es';
 import { RefObject, useEffect, useRef, useState } from 'react';
-import { MoveDirection, MoveType } from '../const';
+import { MoveDirection, MoveType, PositionType } from '../const';
 import { Position } from '../type';
 import { useEvent } from './useEvent';
 
@@ -16,15 +17,51 @@ const MoveValueMap: Record<MoveDirection, Position> = {
   [MoveDirection.ArrowRight]: { x: +BaseMoveIncrement, y: 0 },
 };
 
-export function useMoveControl(containerRef: RefObject<HTMLElement>) {
-  const [layoutInfo, setContainerLayoutInfo] = useState({
+export type PositionTransformer = (
+  position: Position,
+  positionType: PositionType
+) => Position;
+
+export function useMoveControl({
+  containerRef,
+  position = { x: 0, y: 0 },
+  onPositionChange,
+}: {
+  containerRef: RefObject<HTMLElement>;
+  position?: Position;
+  onPositionChange: (position: Position) => void;
+}) {
+  const [{ width, height }, setContainerLayoutInfo] = useState({
     width: 0,
     height: 0,
   });
 
-  const [moveType, setMoveType] = useState<MoveType>(MoveType.Keyboard);
+  const [inKeyboardMove, setInKeyboardMove] = useState(false);
 
-  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
+  const resetInKeyboardMove = useEvent(
+    debounce(() => {
+      setInKeyboardMove(false);
+    }, 500)
+  );
+
+  const positionTransformer = useEvent(
+    ({ x, y }: Position = { x: 0, y: 0 }, transformType: PositionType) => {
+      const halfWith = width / 2;
+      const halfHeight = height / 2;
+
+      if (transformType === PositionType.Absolute) {
+        return {
+          x: x + halfWith,
+          y: y + halfHeight,
+        };
+      } else {
+        return {
+          x: x - halfWith,
+          y: y - halfHeight,
+        };
+      }
+    }
+  );
 
   const handleKeyboardMove = useEvent((e: KeyboardEvent) => {
     const move = MoveValueMap[e.key as MoveDirection];
@@ -34,9 +71,10 @@ export function useMoveControl(containerRef: RefObject<HTMLElement>) {
 
     const isPressAlt = e.altKey;
 
-    setMoveType(MoveType.Keyboard);
+    setInKeyboardMove(true);
+    resetInKeyboardMove();
 
-    setPosition({
+    onPositionChange({
       x: position.x + (isPressAlt ? x * AltMoveMultiple : x),
       y: position.y + (isPressAlt ? y * AltMoveMultiple : y),
     });
@@ -45,12 +83,16 @@ export function useMoveControl(containerRef: RefObject<HTMLElement>) {
   const handleMousedown = useEvent((e: MouseEvent) => {
     if (e.target !== containerRef.current) return;
 
-    setMoveType(MoveType.Mouse);
-
-    setPosition({
-      x: e.offsetX,
-      y: e.offsetY,
-    });
+    // 将本地绝对位置转为相对位置再发送出去
+    onPositionChange(
+      positionTransformer(
+        {
+          x: e.offsetX,
+          y: e.offsetY,
+        },
+        PositionType.Relative
+      )
+    );
   });
 
   useEffect(() => {
@@ -62,10 +104,8 @@ export function useMoveControl(containerRef: RefObject<HTMLElement>) {
 
     setContainerLayoutInfo({ width: clientWidth, height: clientHeight });
 
-    setPosition({ x: clientWidth / 2, y: clientHeight / 2 });
-
     window.addEventListener('keydown', handleKeyboardMove);
-    containerRef.current.addEventListener('mousedown', handleMousedown);
+    containerRef.current.addEventListener('click', handleMousedown);
 
     return () => {
       if (!containerRef.current) {
@@ -73,9 +113,9 @@ export function useMoveControl(containerRef: RefObject<HTMLElement>) {
       }
 
       window.removeEventListener('keydown', handleKeyboardMove);
-      containerRef.current.removeEventListener('mousedown', handleMousedown);
+      containerRef.current.removeEventListener('click', handleMousedown);
     };
   }, []);
 
-  return { position, moveType };
+  return { position, positionTransformer, inKeyboardMove };
 }

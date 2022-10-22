@@ -1,0 +1,15 @@
+diff --git a/dist/server/index.js b/dist/server/index.js
+index 1b11d01355dc8bf8473325648bda027d2d1f82cf..f44e52efa61dd0c780489d3d60bc25083aaaabf2 100644
+--- a/dist/server/index.js
++++ b/dist/server/index.js
+@@ -107,6 +107,10 @@ var f = require("lib0/observable"), y = class extends f.Observable {
+       var c;
+       let s = e.nsp.name.replace(/\/yjs\|/, ""), n = await this.initDocument(s, e.nsp, (c = this.configuration) == null ? void 0 : c.gcEnabled);
+       this.initSyncListeners(e, n), this.initAwarenessListeners(e, n), this.initSocketListeners(e, n), this.startSynchronization(e, n);
++
++e.on('disconnect', () => {
++  this.emit('socket-disconnect', [e]);
++});
+     });
+   }
+   get documents() {

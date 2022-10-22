@@ -2,9 +2,10 @@ import { useCallback, useState } from 'react';
 import { UserInfo } from '../type';
 import { endpoint, getUserInfo } from '../api';
 import { message } from 'antd';
+import { fakeUserInfo } from '../const';
 
 export function useLogin() {
-  const [userInfo, setUserInfo] = useState<UserInfo>();
+  const [userInfo, setUserInfo] = useState<UserInfo>(fakeUserInfo);
 
   const login = useCallback(async () => {
     const win = window.open(
@@ -27,7 +28,11 @@ export function useLogin() {
         const userInfo = await getUserInfo(code);
 
         // 登录成功
-        setUserInfo(userInfo);
+        setUserInfo({
+          id: userInfo.union_id,
+          name: userInfo.name,
+          avatar: userInfo.avatar_url,
+        });
 
         message.success('登录成功');
 

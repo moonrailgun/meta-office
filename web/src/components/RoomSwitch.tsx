@@ -4,6 +4,8 @@ import { CopyOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import copy from 'copy-to-clipboard';
 import { nanoid } from 'nanoid';
+import { useRTCClientStore } from '../rtc/store';
+import { useGlobalContext } from '../context';
 
 const RoomIdInput = styled(Input)({
   width: 200,
@@ -18,20 +20,28 @@ const CopyButton = styled(Button).attrs({
   marginLeft: 4,
 });
 
-interface RoomSwitchProps {
-  onJoinRoom: (roomId: string) => void;
-}
-export const RoomSwitch: React.FC<RoomSwitchProps> = React.memo((props) => {
-  const [roomId, setRoomId] = useState(() => nanoid());
+export const RoomSwitch: React.FC = React.memo(() => {
+  const [roomId, setRoomId] = useState(() => 'jiaming');
+  // const [roomId, setRoomId] = useState(() => nanoid(8));
+  const { join } = useRTCClientStore();
+  const [loading, setLoading] = useState(false);
+  const { userInfo } = useGlobalContext();
 
-  // useEffect(() => {
-  //   // 挂载时自动登录房间
-  //   handleSwitchRoom();
-  // }, []);
+  useEffect(() => {
+    // 挂载时自动登录房间
+    handleSwitchRoom();
+  }, []);
 
-  const handleSwitchRoom = useCallback(() => {
-    props.onJoinRoom(roomId);
-  }, [roomId, props.onJoinRoom]);
+  const handleSwitchRoom = useCallback(async () => {
+    setLoading(true);
+    await join(`meta-office-${roomId}`, {
+      video: false,
+      audio: false,
+      displayName: userInfo?.name ?? '',
+      picture: userInfo?.avatar ?? '',
+    });
+    setLoading(false);
+  }, [roomId]);
 
   const handleCopy = useCallback(() => {
     copy(roomId);
@@ -45,6 +55,7 @@ export const RoomSwitch: React.FC<RoomSwitchProps> = React.memo((props) => {
       <RoomIdInput
         placeholder="请输入房间号"
         value={roomId}
+        disabled={loading}
         onChange={(e) => setRoomId(e.target.value)}
         onPressEnter={handleSwitchRoom}
       />

@@ -3,11 +3,7 @@ import React, { memo } from 'react';
 import { useGlobalContext } from './../context';
 
 export const LoginButton: React.FC = memo(() => {
-  const { login, userInfo } = useGlobalContext();
-
-  if (userInfo) {
-    return null;
-  }
+  const { login } = useGlobalContext();
 
   return (
     <Button type="primary" onClick={login}>
@@ -15,3 +11,4 @@ export const LoginButton: React.FC = memo(() => {
     </Button>
   );
 });
+LoginButton.displayName = 'LoginButton';

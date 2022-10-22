@@ -15,5 +15,10 @@
   "devDependencies": {
     "concurrently": "^7.4.0",
     "typescript": "^4.8.4"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "y-socket.io@1.0.0": "patches/y-socket.io@1.0.0.patch"
+    }
   }
 }

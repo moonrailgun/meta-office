@@ -28,6 +28,7 @@ interface RTCClientState {
     webcam: RTCProduceState;
     mic: RTCProduceState;
     volume: Volume | null;
+    volumeWatcher: VolumeWatcher | null;
   };
   peers: Peer[];
   peerUpdateRef: Record<string, number>; // 用于强制更新列表 <peerId, updateNum>
@@ -37,6 +38,8 @@ interface RTCClientState {
     micTrack: MediaStreamTrack | undefined;
     volumeWatcher: VolumeWatcher | undefined;
   };
+  switchWebcam: () => void;
+  switchMic: () => void;
 }
 
 export const useRTCClientStore = create<
@@ -49,6 +52,17 @@ export const useRTCClientStore = create<
       peerId
     );
 
+    const updatePeerRef = (peerId: string) => {
+      // 强制更新一下
+      set((state) => {
+        if (!state.peerUpdateRef[peerId]) {
+          state.peerUpdateRef[peerId] = 0;
+        }
+
+        state.peerUpdateRef[peerId] += 1;
+      });
+    };
+
     const listenPeersUpdate = once(() => {
       client.onPeersUpdate((peers) => {
         set({
@@ -58,18 +72,12 @@ export const useRTCClientStore = create<
 
       client.onPeerConsumerUpdate((peerId, consumer) => {
         // 强制更新一下
-        set((state) => {
-          if (!state.peerUpdateRef[peerId]) {
-            state.peerUpdateRef[peerId] = 0;
-          }
-
-          state.peerUpdateRef[peerId] += 1;
-        });
+        updatePeerRef(peerId);
       });
     });
 
     client.onWebcamProduce((webcamProducer) => {
-      set((state: RTCClientState) => {
+      set((state) => {
         if (webcamProducer.track) {
           state.produce.webcam = {
             enabled: true,
@@ -77,19 +85,21 @@ export const useRTCClientStore = create<
           };
         }
       });
+      updatePeerRef(peerId);
     });
 
     client.onWebcamClose(() => {
-      set((state: RTCClientState) => {
+      set((state) => {
         state.produce.webcam = {
           enabled: false,
           mediaStream: null,
         };
       });
+      updatePeerRef(peerId);
     });
 
     client.onMicProduce((micProducer) => {
-      set((state: RTCClientState) => {
+      set((state) => {
         if (micProducer.track) {
           state.produce.mic = {
             enabled: true,
@@ -99,24 +109,34 @@ export const useRTCClientStore = create<
       });
 
       if ('volumeWatcher' in micProducer.appData) {
+        set((state) => {
+          state.produce.volumeWatcher = micProducer.appData
+            .volumeWatcher as VolumeWatcher;
+        });
         (micProducer.appData.volumeWatcher as VolumeWatcher).on(
           'volumeChange',
           (volume) => {
-            set((state: RTCClientState) => {
+            set((state) => {
               state.produce.volume = volume;
             });
           }
         );
       }
+
+      updatePeerRef(peerId);
     });
 
     client.onMicClose(() => {
-      set((state: RTCClientState) => {
+      set((state) => {
         state.produce.mic = {
           enabled: false,
           mediaStream: null,
         };
+        state.produce.volume = null;
+        state.produce.volumeWatcher = null;
       });
+
+      updatePeerRef(peerId);
     });
 
     return {
@@ -131,19 +151,23 @@ export const useRTCClientStore = create<
           mediaStream: null,
         },
         volume: null,
+        volumeWatcher: null,
       },
       peers: [],
       peerUpdateRef: {},
       async join(roomId, options) {
         try {
-          const joinP = ((window as any).joinP = client.join(roomId, options));
-          await Promise.resolve(joinP);
+          if (client.roomId) {
+            client.close();
+          }
+
+          await client.join(roomId, options);
 
           console.log('join room success', {
             roomId,
             options,
           });
-          message.success(`加入房间 ${roomId} 成功`);
+          message.success(`加入房间 [${roomId}] 成功`);
 
           set({
             roomId,
@@ -152,19 +176,45 @@ export const useRTCClientStore = create<
 
           listenPeersUpdate();
         } catch (err) {
+          message.error('Join room failed' + String(err));
           console.error('join room failed', err);
           throw err;
         }
       },
-      getPeerMediaInfo(peerId: string) {
-        const { webcamConsumer, micConsumer } =
-          client.getConsumersByPeerId(peerId);
+      getPeerMediaInfo(targetPeerId: string) {
+        if (peerId === targetPeerId) {
+          // 是自己
+          const produce = get().produce;
 
-        return {
-          webcamTrack: webcamConsumer?.track,
-          micTrack: micConsumer?.track,
-          volumeWatcher: micConsumer?.appData.volumeWatcher,
-        };
+          return {
+            webcamTrack: produce.webcam.mediaStream?.getVideoTracks()[0],
+            micTrack: produce.mic.mediaStream?.getAudioTracks()[0],
+            volumeWatcher: produce.volumeWatcher,
+          };
+        } else {
+          const { webcamConsumer, micConsumer } =
+            client.getConsumersByPeerId(targetPeerId);
+
+          return {
+            webcamTrack: webcamConsumer?.track,
+            micTrack: micConsumer?.track,
+            volumeWatcher: micConsumer?.appData.volumeWatcher,
+          };
+        }
+      },
+      switchWebcam() {
+        if (client.webcamEnabled) {
+          client.disableWebcam();
+        } else {
+          client.enableWebcam();
+        }
+      },
+      switchMic() {
+        if (client.micEnabled) {
+          client.disableMic();
+        } else {
+          client.enableMic();
+        }
       },
     } as RTCClientState;
   })

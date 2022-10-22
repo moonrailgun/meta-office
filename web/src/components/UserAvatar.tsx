@@ -12,5 +12,5 @@ const Avatar = styled.img`
 export const UserAvatar: React.FC = memo(() => {
   const { userInfo } = useGlobalContext();
 
-  return <Avatar src={userInfo?.avatar_middle || DefaultUserAvatar} />;
+  return <Avatar src={userInfo?.avatar ?? DefaultUserAvatar} />;
 });
