@@ -8,7 +8,7 @@ import {
 import { nanoid } from 'nanoid';
 import create from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { once } from 'lodash-es';
+import { keyBy, once } from 'lodash-es';
 import { message } from 'antd';
 
 export const peerId = nanoid(); // 实例唯一的id
@@ -24,13 +24,14 @@ interface RTCProduceState {
 
 interface RTCClientState {
   roomId: string;
+  joined: boolean;
   produce: {
     webcam: RTCProduceState;
     mic: RTCProduceState;
     volume: Volume | null;
     volumeWatcher: VolumeWatcher | null;
   };
-  peers: Peer[];
+  peerMap: Record<string, Peer>;
   peerUpdateRef: Record<string, number>; // 用于强制更新列表 <peerId, updateNum>
   join: (roomId: string, options: JoinOptions) => Promise<void>;
   getPeerMediaInfo: (peerId: string) => {
@@ -63,10 +64,13 @@ export const useRTCClientStore = create<
       });
     };
 
-    const listenPeersUpdate = once(() => {
+    const listenPeersUpdate = () => {
       client.onPeersUpdate((peers) => {
+        console.log('client.onPeersUpdate', peers);
         set({
-          peers: [...peers],
+          peerMap: {
+            ...keyBy(peers ?? [], 'id'),
+          },
         });
       });
 
@@ -74,7 +78,7 @@ export const useRTCClientStore = create<
         // 强制更新一下
         updatePeerRef(peerId);
       });
-    });
+    };
 
     client.onWebcamProduce((webcamProducer) => {
       set((state) => {
@@ -141,6 +145,7 @@ export const useRTCClientStore = create<
 
     return {
       roomId: '',
+      joined: false,
       produce: {
         webcam: {
           enabled: false,
@@ -153,10 +158,11 @@ export const useRTCClientStore = create<
         volume: null,
         volumeWatcher: null,
       },
-      peers: [],
+      peerMap: {},
       peerUpdateRef: {},
       async join(roomId, options) {
         try {
+          set({ joined: false });
           if (client.roomId) {
             client.close();
           }
@@ -171,7 +177,8 @@ export const useRTCClientStore = create<
 
           set({
             roomId,
-            peers: client.room?.peers ?? [],
+            joined: true,
+            peerMap: keyBy(client.room?.peers ?? [], 'id'),
           });
 
           listenPeersUpdate();

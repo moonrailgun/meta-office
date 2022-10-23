@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { RoomUserInfo } from '../type';
 import dayjs from 'dayjs';
 import styled from 'styled-components';
@@ -35,7 +35,7 @@ const ExtraContainer = styled.div`
 `;
 
 const MessageBox = styled.div`
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: rgba(0, 0, 0, 0.1);
   padding: 2px 4px;
   border-radius: 3px;
   font-size: 12px;
@@ -64,6 +64,10 @@ export const UserItem: React.FC<UserItemProps> = React.memo((props) => {
   const { name, avatar, position, lastMessage, peerId } = props.roomUser;
   const { x = 0, y = 0 } = position;
   const [active, setActive] = useState(false);
+  const lastMessageTime = useMemo(
+    () => dayjs.unix(lastMessage?.time || 0),
+    [lastMessage]
+  );
 
   return (
     <UserItemContainer
@@ -79,16 +83,16 @@ export const UserItem: React.FC<UserItemProps> = React.memo((props) => {
             <Peer
               peerId={peerId}
               volume={1}
-              onVolumeLevelUpdate={(level) =>
-                level >= 2 ? setActive(true) : setActive(false)
-              }
+              onVolumeLevelUpdate={(level) => {
+                level >= 2 ? setActive(true) : setActive(false);
+              }}
             />
           )}
         </PeerContainer>
 
         {Boolean(lastMessage) && (
           <MessageBox>
-            <span>{dayjs.unix(lastMessage?.time || 0).format('HH:mm')} </span>
+            <span>{lastMessageTime.format('HH:mm')} </span>
             {lastMessage?.content}
           </MessageBox>
         )}

@@ -1,14 +1,14 @@
 import { Badge } from 'antd';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { useRTCClientStore } from './store';
+import { useRTCClientStore, peerId as producePeerId } from './store';
 
 const Root = styled.div({
   borderRadius: 10,
   fontSize: 12,
   width: 90,
   height: 50,
-  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  backgroundColor: 'rgba(0, 0, 0, 0.1)',
   overflow: 'hidden',
 
   video: {
@@ -39,13 +39,14 @@ export const Peer: React.FC<PeerProps> = React.memo((props) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [displayWebcam, setDisplayWebcam] = useState(false);
-  const { getPeerMediaInfo, peerUpdateRef, peers } = useRTCClientStore();
+  const { getPeerMediaInfo, peerUpdateRef, peerMap, joined } =
+    useRTCClientStore();
   const [currentVolumeLevel, setCurrentVolumeLevel] = useState(0);
   const peerId = props.peerId;
 
   useEffect(() => {
     const { webcamTrack, micTrack, volumeWatcher } = getPeerMediaInfo(peerId);
-    console.log({ webcamTrack, micTrack, volumeWatcher });
+    console.log({ peerId, webcamTrack, micTrack, volumeWatcher });
 
     if (webcamTrack && videoRef.current) {
       setDisplayWebcam(true);
@@ -87,8 +88,17 @@ export const Peer: React.FC<PeerProps> = React.memo((props) => {
     audioRef.current.volume = props.volume;
   }, [props.volume]);
 
-  if (!peers.find((peer) => peer.id !== peerId)) {
-    return <Badge color="red" />;
+  if (peerId === producePeerId) {
+    // 是自己
+    if (joined === false) {
+      return <Badge color="red" />;
+    }
+  } else {
+    if (!peerMap[peerId]) {
+      console.log('Not found peerId', peerMap, peerId);
+      // 参会人列表中没有找到
+      return <Badge color="red" />;
+    }
   }
 
   return (

@@ -21,8 +21,7 @@ const CopyButton = styled(Button).attrs({
 });
 
 export const RoomSwitch: React.FC = React.memo(() => {
-  const [roomId, setRoomId] = useState(() => 'jiaming');
-  // const [roomId, setRoomId] = useState(() => nanoid(8));
+  const [roomId, setRoomId] = useState(() => 'lobby'); // 默认在大厅
   const { join } = useRTCClientStore();
   const [loading, setLoading] = useState(false);
   const { userInfo } = useGlobalContext();

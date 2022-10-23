@@ -37,6 +37,9 @@ ysocketio.on('socket-disconnect', (socket: Socket) => {
     console.error(err);
   }
 });
+ysocketio.on('document-destroy', (doc: Document) => {
+  console.log('document-destroy', doc);
+});
 
 const feishuHost = process.env.FEISHU_HOST;
 const appId = process.env.APP_ID;
