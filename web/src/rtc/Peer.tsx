@@ -95,7 +95,7 @@ export const Peer: React.FC<PeerProps> = React.memo((props) => {
     }
   } else {
     if (!peerMap[peerId]) {
-      console.log('Not found peerId', peerMap, peerId);
+      // console.log('Not found peerId', peerMap, peerId);
       // 参会人列表中没有找到
       return <Badge color="red" />;
     }
@@ -105,7 +105,9 @@ export const Peer: React.FC<PeerProps> = React.memo((props) => {
     <Root style={{ display: displayWebcam ? 'block' : 'none' }}>
       <video ref={videoRef} autoPlay={true} />
 
-      <audio ref={audioRef} autoPlay={true} style={{ display: 'none' }} />
+      {peerId !== producePeerId && (
+        <audio ref={audioRef} autoPlay={true} style={{ display: 'none' }} />
+      )}
     </Root>
   );
 });

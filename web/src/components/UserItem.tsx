@@ -59,47 +59,56 @@ const UserName = styled.div`
 
 interface UserItemProps {
   roomUser: RoomUserInfo;
+  volume: number;
 }
-export const UserItem: React.FC<UserItemProps> = React.memo((props) => {
-  const { name, avatar, position, lastMessage, peerId } = props.roomUser;
-  const { x = 0, y = 0 } = position;
-  const [active, setActive] = useState(false);
-  const lastMessageTime = useMemo(
-    () => dayjs.unix(lastMessage?.time || 0),
-    [lastMessage]
-  );
+export const UserItem: React.FC<UserItemProps> = React.memo(
+  ({ roomUser, volume }) => {
+    const { name, avatar, position, lastMessage, peerId } = roomUser;
+    const { x = 0, y = 0 } = position || { x: 0, y: 0 };
+    const [active, setActive] = useState(false);
+    const lastMessageTime = useMemo(
+      () => dayjs.unix(lastMessage?.time || 0),
+      [lastMessage]
+    );
+    const showLastMessage = useMemo(() => {
+      if (!lastMessage) return false;
 
-  return (
-    <UserItemContainer
-      className={cx({ active })}
-      style={{
-        left: x,
-        top: y,
-      }}
-    >
-      <ExtraContainer>
-        <PeerContainer>
-          {peerId && (
-            <Peer
-              peerId={peerId}
-              volume={1}
-              onVolumeLevelUpdate={(level) => {
-                level >= 2 ? setActive(true) : setActive(false);
-              }}
-            />
+      // 只显示五分钟内的消息
+      return dayjs().unix() - lastMessage?.time < 1000 * 60 * 5;
+    }, [lastMessage]);
+
+    return (
+      <UserItemContainer
+        className={cx({ active })}
+        style={{
+          left: x,
+          top: y,
+        }}
+      >
+        <ExtraContainer>
+          <PeerContainer>
+            {peerId && (
+              <Peer
+                peerId={peerId}
+                volume={volume}
+                onVolumeLevelUpdate={(level) => {
+                  level >= 2 ? setActive(true) : setActive(false);
+                }}
+              />
+            )}
+          </PeerContainer>
+
+          {showLastMessage && (
+            <MessageBox>
+              <span>{lastMessageTime.format('HH:mm')} </span>
+              {lastMessage?.content}
+            </MessageBox>
           )}
-        </PeerContainer>
-
-        {Boolean(lastMessage) && (
-          <MessageBox>
-            <span>{lastMessageTime.format('HH:mm')} </span>
-            {lastMessage?.content}
-          </MessageBox>
-        )}
-      </ExtraContainer>
-      <Avatar src={avatar} />
-      <UserName>{name}</UserName>
-    </UserItemContainer>
-  );
-});
+        </ExtraContainer>
+        <Avatar src={avatar} />
+        <UserName>{name}</UserName>
+      </UserItemContainer>
+    );
+  }
+);
 UserItem.displayName = 'UserItem';

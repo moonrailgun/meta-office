@@ -24,7 +24,7 @@ import { nanoid } from 'nanoid';
 import { MediaType, PositionType } from '../const';
 import { RoomMediaInfo } from '../type';
 import { useEvent } from '../hooks/useEvent';
-import { PositionTransformer } from '../hooks/useMoveControl';
+import { PositionTransformer } from '../hooks/usePlayground';
 import urlRegex from 'url-regex';
 
 const ItemText = styled.div({
@@ -92,61 +92,54 @@ function _openCreateMediaDialog(
   });
 }
 
-interface Props {
-  positionTransformer: PositionTransformer;
-}
+export const ContextMenu: React.FC = React.memo(() => {
+  const {
+    playgroundContext: { positionTransformer },
+    roomDataContext: { addMedia },
+  } = useGlobalContext();
 
-export const ContextMenu: React.FC<Props> = React.memo(
-  ({ positionTransformer }) => {
-    const {
-      roomDataContext: { addMedia },
-    } = useGlobalContext();
+  const openCreateMediaDialog = useEvent(
+    (e: ItemParams, mediaType: MediaType) => {
+      _openCreateMediaDialog(e, mediaType, addMedia, positionTransformer);
+    }
+  );
 
-    const openCreateMediaDialog = useEvent(
-      (e: ItemParams, mediaType: MediaType) => {
-        _openCreateMediaDialog(e, mediaType, addMedia, positionTransformer);
-      }
-    );
-
-    return (
-      <Menu id={MENU_ID} onAuxClick={(e) => console.warn(e)}>
-        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.Image)}>
-          <PictureOutlined />
-          <ItemText>放入图片</ItemText>
+  return (
+    <Menu id={MENU_ID} onAuxClick={(e) => console.warn(e)}>
+      <Item onClick={(e) => openCreateMediaDialog(e, MediaType.Image)}>
+        <PictureOutlined />
+        <ItemText>放入图片</ItemText>
+      </Item>
+      <Item onClick={(e) => openCreateMediaDialog(e, MediaType.WebPage)}>
+        <GlobalOutlined />
+        <ItemText>放入网页</ItemText>
+      </Item>
+      <Separator />
+      <Submenu label="飞书集成">
+        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.MagicMinutes)}>
+          <FormOutlined />
+          <ItemText>会议妙计</ItemText>
         </Item>
-        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.WebPage)}>
-          <GlobalOutlined />
-          <ItemText>放入网页</ItemText>
+        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.LarkDocs)}>
+          <FileWordOutlined />
+          <ItemText>飞书文档</ItemText>
         </Item>
-        <Separator />
-        <Submenu label="飞书集成">
-          <Item
-            onClick={(e) => openCreateMediaDialog(e, MediaType.MagicMinutes)}
-          >
-            <FormOutlined />
-            <ItemText>会议妙计</ItemText>
-          </Item>
-          <Item onClick={(e) => openCreateMediaDialog(e, MediaType.LarkDocs)}>
-            <FileWordOutlined />
-            <ItemText>飞书文档</ItemText>
-          </Item>
-          <Item onClick={(e) => openCreateMediaDialog(e, MediaType.LarkSheet)}>
-            <TableOutlined />
-            <ItemText>多维表格</ItemText>
-          </Item>
-        </Submenu>
-        <Submenu label="第三方集成">
-          <Item onClick={(e) => openCreateMediaDialog(e, MediaType.Figma)}>
-            <AppstoreOutlined />
-            <ItemText>Figma</ItemText>
-          </Item>
-          <Item onClick={(e) => openCreateMediaDialog(e, MediaType.Excalidraw)}>
-            <AppstoreOutlined />
-            <ItemText>Excalidraw</ItemText>
-          </Item>
-        </Submenu>
-      </Menu>
-    );
-  }
-);
+        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.LarkSheet)}>
+          <TableOutlined />
+          <ItemText>多维表格</ItemText>
+        </Item>
+      </Submenu>
+      <Submenu label="第三方集成">
+        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.Figma)}>
+          <AppstoreOutlined />
+          <ItemText>Figma</ItemText>
+        </Item>
+        <Item onClick={(e) => openCreateMediaDialog(e, MediaType.Excalidraw)}>
+          <AppstoreOutlined />
+          <ItemText>Excalidraw</ItemText>
+        </Item>
+      </Submenu>
+    </Menu>
+  );
+});
 ContextMenu.displayName = 'ContextMenu';

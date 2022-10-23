@@ -72,5 +72,5 @@ router.get('/userInfo', async (ctx) => {
 app.use(router.routes()).use(router.allowedMethods());
 
 server.listen(3000, () => {
-  console.log('http://localhost:3000');
+  console.log('服务端已启动: http://localhost:3000');
 });

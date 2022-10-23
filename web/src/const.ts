@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid';
-import { UserInfo } from './type';
+import { Position, RoomUserInfo, UserInfo } from './type';
 
 export enum MoveDirection {
   ArrowUp = 'ArrowUp',
@@ -50,3 +50,15 @@ export enum MediaType {
   Figma = 'Figma',
   Excalidraw = 'Excalidraw',
 }
+
+export const DefaultPosition: Position = { x: 0, y: 0 };
+
+export const EmptyRoomUserInfo: RoomUserInfo = {
+  id: '',
+  name: '',
+  avatar: '',
+  position: { x: 0, y: 0 },
+  lastMessage: undefined,
+  lastHeartbeat: 0,
+  peerId: '',
+};

@@ -52,3 +52,8 @@ export interface RoomMediaInfo {
   url: string;
   position: Position;
 }
+
+export interface LayoutInfo {
+  width: number;
+  height: number;
+}

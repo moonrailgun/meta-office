@@ -7,6 +7,7 @@ import styled from 'styled-components';
 import { ContextMenu, useContextMenu } from './ContextMenu';
 import { UserItem } from './UserItem';
 import { MediaItem } from './MediaItem';
+import { useDomLayoutInfo } from '../hooks/useDomLayoutInfo';
 
 const PlaygroundContainer = styled.div`
   width: 100%;
@@ -33,13 +34,14 @@ const PlaygroundContainer = styled.div`
 `;
 
 export const Playground: React.FC = memo(() => {
-  const containerRef = useRef(null);
   const {
+    calcPositionVolume,
+    playgroundContext: { playgroundRef },
     roomDataContext: { currentUser, allUsers, allMedia, updatePosition },
   } = useGlobalContext();
 
-  const { positionTransformer, inKeyboardMove } = useMoveControl({
-    containerRef,
+  const { inKeyboardMove } = useMoveControl({
+    containerRef: playgroundRef,
     onPositionChange: updatePosition,
     position: currentUser?.position,
   });
@@ -49,36 +51,22 @@ export const Playground: React.FC = memo(() => {
   return (
     <PlaygroundContainer
       className={cx({ inKeyboardMove })}
-      ref={containerRef}
+      ref={playgroundRef}
       onContextMenu={show}
     >
       {allUsers.map((roomUser) => (
         <UserItem
           key={roomUser.id}
-          roomUser={{
-            ...roomUser,
-            position: positionTransformer(
-              roomUser.position,
-              PositionType.Absolute
-            ),
-          }}
+          roomUser={roomUser}
+          volume={calcPositionVolume(roomUser.position)}
         />
       ))}
 
       {allMedia.map((roomMedia) => (
-        <MediaItem
-          key={roomMedia.id}
-          roomMedia={{
-            ...roomMedia,
-            position: positionTransformer(
-              roomMedia.position,
-              PositionType.Absolute
-            ),
-          }}
-        />
+        <MediaItem key={roomMedia.id} roomMedia={roomMedia} />
       ))}
 
-      <ContextMenu positionTransformer={positionTransformer} />
+      <ContextMenu />
     </PlaygroundContainer>
   );
 });

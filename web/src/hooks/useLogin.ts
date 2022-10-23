@@ -5,7 +5,7 @@ import { message } from 'antd';
 import { fakeUserInfo } from '../const';
 
 export function useLogin() {
-  const [userInfo, setUserInfo] = useState<UserInfo>(fakeUserInfo);
+  const [userInfo, setUserInfo] = useState<UserInfo>();
 
   const login = useCallback(async () => {
     const win = window.open(
@@ -43,5 +43,9 @@ export function useLogin() {
     window.addEventListener('message', handleProcessOAuthCallback);
   }, []);
 
-  return { userInfo, login };
+  const fakeLogin = useCallback(() => {
+    setUserInfo(fakeUserInfo);
+  }, []);
+
+  return { userInfo, login, fakeLogin };
 }
