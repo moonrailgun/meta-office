@@ -93,15 +93,16 @@ export function useRoomData({
     };
   }, [roomId, userInfo?.id]);
 
-  // User DOC
-  const roomUserDoc = useMemo(
-    () => doc.getMap<RoomUserInfo>(RoomDataType.User),
-    [doc]
-  );
   // 原始数据 不要直接使用 使用allUsers
   const [roomUserInfo, setRoomUserInfo] = useState<
     Record<string, RoomUserInfo>
   >({});
+  // User DOC
+  const roomUserDoc = useMemo(() => {
+    setRoomUserInfo({});
+
+    return doc.getMap<RoomUserInfo>(RoomDataType.User);
+  }, [doc]);
 
   // User Info State
   const allUsers = useMemo<RoomUserInfo[]>(() => {
@@ -112,7 +113,14 @@ export function useRoomData({
     }));
   }, [roomUserInfo, positionTransfromer]);
   const currentUser = useMemo(
-    () => allUsers.find((u) => u.id === userInfo?.id) || EmptyRoomUserInfo,
+    () =>
+      allUsers.find((u) => u.id === userInfo?.id) || {
+        ...EmptyRoomUserInfo,
+        position: positionTransfromer(
+          EmptyRoomUserInfo.position,
+          PositionType.Absolute
+        ),
+      },
     [allUsers, userInfo?.id]
   );
 
@@ -129,12 +137,16 @@ export function useRoomData({
     };
   }, [roomUserDoc]);
 
-  // Media DOC
-  const roomMediaDoc = doc.getMap<RoomMediaInfo>(RoomDataType.Media);
   // 原始数据 不要直接使用 使用allMedia
   const [roomMediaInfo, setRoomMediaInfo] = useState<
     Record<string, RoomMediaInfo>
   >({});
+  // Media DOC
+  const roomMediaDoc = useMemo(() => {
+    setRoomMediaInfo({});
+
+    return doc.getMap<RoomMediaInfo>(RoomDataType.Media);
+  }, [doc]);
 
   // Media Info State
   const allMedia = useMemo<RoomMediaInfo[]>(
@@ -151,6 +163,7 @@ export function useRoomData({
     const fn = () => {
       setRoomMediaInfo(roomMediaDoc.toJSON());
     };
+
     roomMediaDoc.observe(fn);
 
     return () => {

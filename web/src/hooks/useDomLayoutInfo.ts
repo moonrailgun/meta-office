@@ -1,4 +1,5 @@
 import { useState, useEffect, RefObject } from 'react';
+import { useEvent } from './useEvent';
 
 export function useDomLayoutInfo(domRef: RefObject<HTMLElement>) {
   const [layoutInfo, setLayoutInfo] = useState({
@@ -6,15 +7,21 @@ export function useDomLayoutInfo(domRef: RefObject<HTMLElement>) {
     height: 0,
   });
 
-  useEffect(() => {
+  const init = useEvent(() => {
     if (!domRef.current) {
-      return;
+      return setTimeout(() => {
+        init();
+      }, 100);
     }
 
     const { clientWidth, clientHeight } = domRef.current;
 
     setLayoutInfo({ width: clientWidth, height: clientHeight });
-  }, []);
+  });
+
+  useEffect(() => {
+    init();
+  }, [init]);
 
   return { layoutInfo };
 }
